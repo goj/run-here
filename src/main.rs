@@ -1,10 +1,13 @@
 use swayipc::Connection;
-use run_here::{get_focused_pid, Error};
 
-fn main() -> Result<(), Error> {
+mod errors;
+mod pid;
+mod windows;
+
+fn main() -> Result<(), errors::Error> {
     let mut connection = Connection::new()?;
     let tree = connection.get_tree()?;
-    let focused_pid = get_focused_pid(tree)?;
+    let focused_pid = windows::get_focused_pid(tree)?;
     println!("focused_pid: {:?}", focused_pid);
     Ok(())
 }
