@@ -4,4 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+multimap = "0.8.3"
+procfs = "0.12.0"
 swayipc = "3.0.0-alpha.3"
+exec = "0.3.1"
