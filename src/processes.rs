@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::read_link;
 use std::path::PathBuf;
 
@@ -14,24 +15,53 @@ pub fn leaf_cwds(root_pid: Pid) -> Result<Vec<PathBuf>, Error> {
     let mut by_pid = HashMap::new();
     let mut result = HashSet::new();
     for proc in &processes {
+        if should_ignore(&proc.stat.comm) {
+            continue;
+        }
         by_pid.insert(Pid(proc.pid), proc);
         children.insert(Pid(proc.stat.ppid), Pid(proc.pid));
     }
-    add_leaf_cwds(root_pid, &children, &mut result)?;
+    add_leaf_cwds(0, root_pid, &children, &mut result)?;
     Ok(Vec::from_iter(result))
 }
 
-fn add_leaf_cwds(pid: Pid, children: &MultiMap<Pid, Pid>, result: &mut HashSet<PathBuf>) -> Result<(), Error> {
+fn should_ignore(comm: &str) -> bool {
+    return comm == "wl-copy";
+}
+
+fn add_leaf_cwds(
+    n: usize,
+    pid: Pid,
+    children: &MultiMap<Pid, Pid>,
+    result: &mut HashSet<PathBuf>,
+) -> Result<(), Error> {
+    print_debug(n, pid, children);
     if !children.contains_key(&pid) {
         result.insert(get_cwd(pid)?);
         return Ok(());
     }
     for child in children.get(&pid) {
-        add_leaf_cwds(child.clone(), children, result)?;
+        add_leaf_cwds(n + 1, *child, children, result)?;
     }
     Ok(())
 }
 
+fn print_debug(n: usize, pid: Pid, children: &MultiMap<Pid, Pid>) {
+    eprintln!(
+        "{}PID: {} -> {:?} {}",
+        padding(n),
+        pid.0,
+        children.get(&pid),
+        procfs::process::Process::new(pid.0).unwrap().stat.comm
+    );
+}
+
+fn padding(n: usize) -> String {
+    String::from_utf8(vec![b' '; n]).unwrap()
+}
+
 fn get_cwd(pid: Pid) -> Result<PathBuf, Error> {
-    Ok(read_link(format!("/proc/{}/cwd", pid.0))?)
+    let cwd = read_link(format!("/proc/{}/cwd", pid.0))?;
+    eprintln!("/proc/{}/cwd -> {:?}", pid.0, cwd);
+    Ok(cwd)
 }

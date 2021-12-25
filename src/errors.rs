@@ -1,7 +1,7 @@
-use swayipc::Error as SwayError;
-use procfs::ProcError;
 use exec::Error as ExecError;
+use procfs::ProcError;
 use std::io::Error as IoError;
+use swayipc::Error as SwayError;
 
 #[derive(Debug)]
 pub enum Error {

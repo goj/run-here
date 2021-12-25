@@ -16,4 +16,3 @@ fn get_focused_pid_impl(node: Node) -> Option<Pid> {
         .chain(node.floating_nodes.into_iter());
     children.flat_map(get_focused_pid_impl).next()
 }
-
