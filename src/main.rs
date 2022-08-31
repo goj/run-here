@@ -15,11 +15,18 @@ fn main() -> Result<(), errors::Error> {
         println!("Must specify command to execute");
         process::exit(1);
     }
+    if try_changing_directory().is_err() {
+        eprintln!("Didn't change directory");
+    }
+    exec_it(&argv)
+}
+
+fn try_changing_directory() -> Result<(), Error> {
     let mut connection = Connection::new()?;
     eprintln!("connected");
     let tree = connection.get_tree()?;
     eprintln!("got tree");
-    let focused_pid = windows::get_focused_pid(tree)?;
+    let focused_pid = windows::get_focused_pid(tree).ok_or(Error::NoFocusedWindow)?;
     eprintln!("got focused pid: {}", focused_pid.0);
     let cwds = processes::leaf_cwds(focused_pid)?;
     eprintln!("got cwds: {:?}", cwds);
@@ -29,7 +36,7 @@ fn main() -> Result<(), errors::Error> {
     } else {
         eprintln!("multiple cwds");
     }
-    exec_it(&argv)
+    Ok(())
 }
 
 fn exec_it(argv: &Vec<String>) -> Result<(), errors::Error> {
