@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use clap::Parser;
 use errno::Errno;
 use errors::Error;
 use std::env;
@@ -9,23 +10,19 @@ mod pid;
 mod processes;
 mod windows;
 
-struct CliArgs {
+#[derive(Parser)]
+#[command(name = "run-here (for Sway and i3)")]
+#[command(about = "Runs a given program in current window's PWD")]
+#[command(version)]
+struct Cli {
     cmd: String,
     args: Vec<String>,
 }
 
 fn main() -> Result<()> {
-    let args = parse_args()?;
+    let args = Cli::parse();
     change_directory()?;
     exec_it(&args)
-}
-
-fn parse_args() -> Result<CliArgs> {
-    let mut args_iter = env::args();
-    args_iter.next(); // Skip own name
-    let cmd = args_iter.next().ok_or(Error::NoCommandSpecified)?;
-    let args = args_iter.collect::<Vec<_>>();
-    Ok(CliArgs { cmd, args })
 }
 
 fn change_directory() -> Result<()> {
@@ -45,7 +42,7 @@ fn change_directory() -> Result<()> {
 }
 
 
-fn exec_it(args: &CliArgs) -> Result<()> {
+fn exec_it(args: &Cli) -> Result<()> {
     const ENOENT: Errno = Errno(2);
     match exec::Command::new(&args.cmd).args(&args.args).exec() {
         exec::Error::BadArgument(_) => bail!("Executing failed: bad argument!"),

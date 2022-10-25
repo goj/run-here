@@ -5,8 +5,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("No command specified")]
-    NoCommandSpecified,
     #[error("IPC error: {0}")]
     IpcFailed(#[from] SwayError),
     #[error("/proc access error: {0}")]
