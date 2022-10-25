@@ -1,3 +1,5 @@
+use anyhow::{bail, Result};
+use errno::Errno;
 use errors::Error;
 use std::env;
 use swayipc::Connection;
@@ -12,13 +14,13 @@ struct CliArgs {
     args: Vec<String>,
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
     let args = parse_args()?;
     change_directory()?;
     exec_it(&args)
 }
 
-fn parse_args() -> Result<CliArgs, Error> {
+fn parse_args() -> Result<CliArgs> {
     let mut args_iter = env::args();
     args_iter.next(); // Skip own name
     let cmd = args_iter.next().ok_or(Error::NoCommandSpecified)?;
@@ -26,7 +28,7 @@ fn parse_args() -> Result<CliArgs, Error> {
     Ok(CliArgs { cmd, args })
 }
 
-fn change_directory() -> Result<(), Error> {
+fn change_directory() -> Result<()> {
     let mut connection = Connection::new()?;
     let tree = connection.get_tree()?;
     let focused_pid = windows::get_focused_pid(tree).ok_or(Error::NoFocusedWindow)?;
@@ -42,8 +44,12 @@ fn change_directory() -> Result<(), Error> {
     Ok(())
 }
 
-fn exec_it(args: &CliArgs) -> Result<(), Error> {
-    Err(Error::from(
-        exec::Command::new(&args.cmd).args(&args.args).exec(),
-    ))
+
+fn exec_it(args: &CliArgs) -> Result<()> {
+    const ENOENT: Errno = Errno(2);
+    match exec::Command::new(&args.cmd).args(&args.args).exec() {
+        exec::Error::BadArgument(_) => bail!("Executing failed: bad argument!"),
+        exec::Error::Errno(ENOENT) => bail!("Executing failed: command `{}` not found!", &args.cmd),
+        exec::Error::Errno(errno) => bail!("Error {} when executing.", errno.0),
+    }
 }

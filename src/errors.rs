@@ -1,4 +1,3 @@
-use exec::Error as ExecError;
 use procfs::ProcError;
 use std::io::Error as IoError;
 use swayipc::Error as SwayError;
@@ -16,6 +15,4 @@ pub enum Error {
     IoFailed(#[from] IoError),
     #[error("No focused window found")]
     NoFocusedWindow,
-    #[error("Failure executing the program: {0}")]
-    ExecFailed(#[from] ExecError),
 }
