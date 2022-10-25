@@ -11,6 +11,4 @@ pub enum Error {
     CouldNotReadProcFs(#[from] ProcError),
     #[error("IO error: {0}")]
     IoFailed(#[from] IoError),
-    #[error("No focused window found")]
-    NoFocusedWindow,
 }

@@ -1,7 +1,6 @@
 use anyhow::{bail, Result};
 use clap::Parser;
 use errno::Errno;
-use errors::Error;
 use std::env;
 use swayipc::Connection;
 
@@ -28,8 +27,13 @@ fn main() -> Result<()> {
 fn change_directory() -> Result<()> {
     let mut connection = Connection::new()?;
     let tree = connection.get_tree()?;
-    let focused_pid = windows::get_focused_pid(tree).ok_or(Error::NoFocusedWindow)?;
-    eprintln!("got focused pid: {}", focused_pid.0);
+    let focused_pid = match windows::get_focused_pid(tree) {
+        Some(pid) => pid,
+        None => {
+            eprintln!("No focused PID, not changing directory");
+            return Ok(());
+        }
+    };
     let cwds = processes::leaf_cwds(focused_pid)?;
     eprintln!("got cwds: {:?}", cwds);
     if cwds.len() == 1 {
@@ -40,7 +44,6 @@ fn change_directory() -> Result<()> {
     }
     Ok(())
 }
-
 
 fn exec_it(args: &Cli) -> Result<()> {
     const ENOENT: Errno = Errno(2);
