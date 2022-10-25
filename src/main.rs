@@ -1,6 +1,5 @@
 use errors::Error;
 use std::env;
-use std::process;
 use swayipc::Connection;
 
 mod errors;
@@ -8,24 +7,28 @@ mod pid;
 mod processes;
 mod windows;
 
-fn main() -> Result<(), errors::Error> {
-    let argv: Vec<String> = env::args().skip(1).collect();
-    if argv.len() < 1 {
-        eprintln!("Got args: {:?}", argv);
-        println!("Must specify command to execute");
-        process::exit(1);
-    }
-    if try_changing_directory().is_err() {
-        eprintln!("Didn't change directory");
-    }
-    exec_it(&argv)
+struct CliArgs {
+    cmd: String,
+    args: Vec<String>,
 }
 
-fn try_changing_directory() -> Result<(), Error> {
+fn main() -> Result<(), Error> {
+    let args = parse_args()?;
+    change_directory()?;
+    exec_it(&args)
+}
+
+fn parse_args() -> Result<CliArgs, Error> {
+    let mut args_iter = env::args();
+    args_iter.next(); // Skip own name
+    let cmd = args_iter.next().ok_or(Error::NoCommandSpecified)?;
+    let args = args_iter.collect::<Vec<_>>();
+    Ok(CliArgs { cmd, args })
+}
+
+fn change_directory() -> Result<(), Error> {
     let mut connection = Connection::new()?;
-    eprintln!("connected");
     let tree = connection.get_tree()?;
-    eprintln!("got tree");
     let focused_pid = windows::get_focused_pid(tree).ok_or(Error::NoFocusedWindow)?;
     eprintln!("got focused pid: {}", focused_pid.0);
     let cwds = processes::leaf_cwds(focused_pid)?;
@@ -39,10 +42,8 @@ fn try_changing_directory() -> Result<(), Error> {
     Ok(())
 }
 
-fn exec_it(argv: &Vec<String>) -> Result<(), errors::Error> {
-    let cmd = &argv[0];
-    let mut args = argv.clone();
-    args.remove(0);
-    eprintln!("cmd: {:?} argv: {:?}", cmd, args);
-    return Err(Error::from(exec::Command::new(cmd).args(&args).exec()));
+fn exec_it(args: &CliArgs) -> Result<(), Error> {
+    Err(Error::from(
+        exec::Command::new(&args.cmd).args(&args.args).exec(),
+    ))
 }

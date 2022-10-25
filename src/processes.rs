@@ -26,9 +26,7 @@ pub fn leaf_cwds(root_pid: Pid) -> Result<Vec<PathBuf>, Error> {
 }
 
 fn should_ignore(comm: &str) -> bool {
-    return comm == "wl-copy"
-        || comm == ".cargo-wrapped"
-        || comm == "make";
+    comm == "wl-copy" || comm == ".cargo-wrapped" || comm == "make"
 }
 
 fn add_leaf_cwds(
@@ -42,7 +40,7 @@ fn add_leaf_cwds(
         result.insert(get_cwd(pid)?);
         return Ok(());
     }
-    for child in children.get(&pid) {
+    if let Some(child) = children.get(&pid) {
         add_leaf_cwds(n + 1, *child, children, result)?;
     }
     Ok(())
