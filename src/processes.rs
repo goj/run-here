@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use crate::pid::Pid;
 use procfs::process::all_processes;
+use users::get_current_uid;
 
 use super::errors::Error;
 use multimap::MultiMap;
@@ -14,8 +15,9 @@ pub fn leaf_cwds(root_pid: Pid) -> Result<Vec<PathBuf>, Error> {
     let mut children = MultiMap::new();
     let mut by_pid = HashMap::new();
     let mut result = HashSet::new();
+    let current_uid = get_current_uid();
     for proc in &processes {
-        if should_ignore(&proc.stat.comm) {
+        if proc.owner != current_uid || should_ignore(&proc.stat.comm) {
             continue;
         }
         by_pid.insert(Pid(proc.pid), proc);
@@ -26,7 +28,7 @@ pub fn leaf_cwds(root_pid: Pid) -> Result<Vec<PathBuf>, Error> {
 }
 
 fn should_ignore(comm: &str) -> bool {
-    comm == "wl-copy" || comm == ".cargo-wrapped" || comm == "make"
+    comm == "wl-copy" || comm == ".cargo-wrapped" || comm == "make" || comm == "pyright-langser"
 }
 
 fn add_leaf_cwds(

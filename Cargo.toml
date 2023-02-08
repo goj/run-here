@@ -12,3 +12,4 @@ thiserror = "1.0"
 anyhow = "1.0"
 errno = "0.2.8"
 clap = { version = "4.0.18", features = ["derive"] }
+users = "0.11.0"
