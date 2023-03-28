@@ -28,7 +28,11 @@ pub fn leaf_cwds(root_pid: Pid) -> Result<Vec<PathBuf>, Error> {
 }
 
 fn should_ignore(comm: &str) -> bool {
-    comm == "wl-copy" || comm == ".cargo-wrapped" || comm == "make" || comm == "pyright-langser"
+    comm == "wl-copy"
+        || comm == ".cargo-wrapped"
+        || comm == "make"
+        || comm == "pyright-langser"
+        || comm == "node"
 }
 
 fn add_leaf_cwds(
