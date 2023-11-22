@@ -20,7 +20,7 @@
         apps.default = flake-utils.lib.mkApp { inherit drv; };
         devShells.default = pkgs.mkShell {
           inputsFrom = builtins.attrValues self.checks;
-          nativeBuildInputs = with pkgs; [ cargo cargo-watch clippy rust-analyzer rustc rustfmt ];
+          nativeBuildInputs = with pkgs; [ cargo cargo-watch cargo-edit clippy rust-analyzer rustc rustfmt ];
         };
       });
 }

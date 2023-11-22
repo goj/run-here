@@ -11,4 +11,8 @@ pub enum Error {
     CouldNotReadProcFs(#[from] ProcError),
     #[error("IO error: {0}")]
     IoFailed(#[from] IoError),
+    #[error("Finding current window's PID failed")]
+    FindingWindowPidFailed,
+    #[error("Couldn't find suitable PWD")]
+    NoSuitablePwdFound,
 }

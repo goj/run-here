@@ -1,73 +1,77 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
-use std::fs::read_link;
+use std::env;
 use std::path::PathBuf;
 
 use crate::pid::Pid;
-use procfs::process::all_processes;
+use procfs::process::{all_processes, Process};
 use users::get_current_uid;
 
 use super::errors::Error;
 use multimap::MultiMap;
 
-pub fn leaf_cwds(root_pid: Pid) -> Result<Vec<PathBuf>, Error> {
+/// A SOA holding the process tree in a pre-order traversal.
+#[derive(Debug)]
+pub struct ProcessTree {
+    processes: Vec<Process>,
+    num_children: Vec<u16>,
+}
+
+pub fn build_process_tree(root: Pid) -> Result<ProcessTree, Error> {
     let processes = all_processes()?;
-    let mut children = MultiMap::new();
     let mut by_pid = HashMap::new();
-    let mut result = HashSet::new();
+    let mut parent_children = MultiMap::new();
     let current_uid = get_current_uid();
-    for proc in &processes {
-        if proc.owner != current_uid || should_ignore(&proc.stat.comm) {
-            continue;
+
+    for proc in processes.into_iter().filter_map(|res| res.ok()) {
+        if proc.uid().ok() == Some(current_uid) {
+            parent_children.insert(Pid(proc.stat()?.ppid), Pid(proc.pid()));
+            by_pid.insert(Pid(proc.pid()), proc);
         }
-        by_pid.insert(Pid(proc.pid), proc);
-        children.insert(Pid(proc.stat.ppid), Pid(proc.pid));
     }
-    add_leaf_cwds(0, root_pid, &children, &mut result)?;
-    Ok(Vec::from_iter(result))
-}
 
-fn should_ignore(comm: &str) -> bool {
-    comm == "wl-copy"
-        || comm == ".cargo-wrapped"
-        || comm == "make"
-        || comm == "pyright-langser"
-        || comm == "node"
-}
-
-fn add_leaf_cwds(
-    n: usize,
-    pid: Pid,
-    children: &MultiMap<Pid, Pid>,
-    result: &mut HashSet<PathBuf>,
-) -> Result<(), Error> {
-    print_debug(n, pid, children);
-    if !children.contains_key(&pid) {
-        result.insert(get_cwd(pid)?);
-        return Ok(());
+    let mut stack = vec![root];
+    let mut result = ProcessTree {
+        processes: vec![],
+        num_children: vec![],
+    };
+    let empty = vec![];
+    while let Some(proc) = stack.pop() {
+        result.processes.push(by_pid.remove(&proc).unwrap());
+        let children = parent_children.get_vec(&proc).unwrap_or(&empty);
+        result.num_children.push(children.len().try_into().unwrap());
+        for &child in children.iter().rev() {
+            stack.push(child);
+        }
     }
-    if let Some(child) = children.get(&pid) {
-        add_leaf_cwds(n + 1, *child, children, result)?;
-    }
-    Ok(())
+    result.processes.reverse();
+    result.num_children.reverse();
+    Ok(result)
 }
 
-fn print_debug(n: usize, pid: Pid, children: &MultiMap<Pid, Pid>) {
-    eprintln!(
-        "{}PID: {} -> {:?} {}",
-        padding(n),
-        pid.0,
-        children.get(&pid),
-        procfs::process::Process::new(pid.0).unwrap().stat.comm
-    );
+pub fn first_interesting(tree: &ProcessTree) -> Option<&Process> {
+    let editor = env::var("EDITOR").ok();
+    let shell = env::var("SHELL").ok();
+    tree.processes
+        .iter()
+        .position(|proc| {
+            let cmdline = proc.cmdline().unwrap_or(vec![]);
+            let cmd = cmdline.get(0);
+            cmd.is_some() && (cmd == editor.as_ref() || cmd == shell.as_ref())
+        })
+        .map(|i| &tree.processes[i])
 }
 
-fn padding(n: usize) -> String {
-    String::from_utf8(vec![b' '; n]).unwrap()
+pub fn first_leaf(tree: &ProcessTree) -> Option<&Process> {
+    tree.num_children
+        .iter()
+        .position(|&n| n == 0)
+        .map(|i| &tree.processes[i])
 }
 
-fn get_cwd(pid: Pid) -> Result<PathBuf, Error> {
-    let cwd = read_link(format!("/proc/{}/cwd", pid.0))?;
-    eprintln!("/proc/{}/cwd -> {:?}", pid.0, cwd);
-    Ok(cwd)
+pub fn interesting_descendant_dir(root_pid: Pid) -> Result<PathBuf, Error> {
+    let tree = build_process_tree(root_pid)?;
+    let proc = first_interesting(&tree)
+        .or_else(|| first_leaf(&tree))
+        .ok_or(Error::NoSuitablePwdFound)?;
+    Ok(proc.cwd()?)
 }
