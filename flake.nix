@@ -4,7 +4,6 @@
   inputs = {
     crane = {
       url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -12,7 +11,8 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        drv = crane.lib.${system}.buildPackage { src = ./.; };
+        craneLib = crane.mkLib pkgs;
+        drv = craneLib.buildPackage { src = ./.; };
       in
       {
         checks.app-builds = drv;
