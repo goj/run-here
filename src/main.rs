@@ -2,22 +2,25 @@ use anyhow::{bail, Result};
 use clap::Parser;
 use errno::Errno;
 use std::{env, path::PathBuf};
-use swayipc::Connection;
 
-use crate::errors::Error;
+use crate::compositor::Compositor;
 
+mod compositor;
 mod errors;
+mod hypr;
 mod pid;
 mod processes;
-mod windows;
+mod sway;
 
 #[derive(Parser)]
-#[command(name = "run-here (for Sway and i3)")]
+#[command(name = "run-here (for Sway & Hyprland")]
 #[command(about = "Runs a given program in current window's PWD")]
 #[command(version)]
 struct Cli {
     #[arg(short, long, default_value_t = false)]
     debug: bool,
+    #[arg(short, long, value_enum, default_value_t = Compositor::Sway)]
+    compositor: Compositor,
     cmd: String,
     #[arg(last = true)]
     args: Vec<String>,
@@ -25,18 +28,16 @@ struct Cli {
 
 fn main() -> Result<()> {
     let args = Cli::parse();
-    match get_directory() {
+    match get_directory(args.compositor) {
         Ok(dir) => env::set_current_dir(dir.as_path())?,
         Err(e) => eprintln!("Error: {e}, not changing directory."),
     }
     exec_it(&args)
 }
 
-fn get_directory() -> Result<PathBuf> {
-    let mut connection = Connection::new()?;
-    let tree = connection.get_tree()?;
-    let focused_pid = windows::get_focused_pid(tree).ok_or(Error::FindingWindowPidFailed)?;
-    Ok(processes::interesting_descendant_dir(focused_pid)?)
+fn get_directory(compositor: Compositor) -> Result<PathBuf> {
+    let pid = compositor.get_focused_pid()?;
+    Ok(processes::interesting_descendant_dir(pid)?)
 }
 
 fn exec_it(args: &Cli) -> Result<()> {

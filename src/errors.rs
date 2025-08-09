@@ -5,12 +5,14 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("IPC error: {0}")]
-    IpcFailed(#[from] SwayError),
+    #[error("Sway IPC error: {0}")]
+    SwayIpcFailed(#[from] SwayError),
     #[error("/proc access error: {0}")]
     CouldNotReadProcFs(#[from] ProcError),
     #[error("IO error: {0}")]
     IoFailed(#[from] IoError),
+    #[error("Active Hyprland client not found")]
+    NoActiveHyprlandClient,
     #[error("Finding current window's PID failed")]
     FindingWindowPidFailed,
     #[error("Couldn't find suitable PWD")]
