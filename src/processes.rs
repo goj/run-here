@@ -55,8 +55,12 @@ pub fn first_interesting(tree: &ProcessTree) -> Option<&Process> {
         .iter()
         .position(|proc| {
             let cmdline = proc.cmdline().unwrap_or(vec![]);
-            let cmd = cmdline.get(0);
-            cmd.is_some() && (cmd == editor.as_ref() || cmd == shell.as_ref())
+            if let Some(raw_cmd) = cmdline.get(0) {
+                let cmd = raw_cmd.rsplit_once("/").map(|(_, s)| s).unwrap_or(raw_cmd);
+                editor.as_deref() == Some(cmd) || shell.as_deref() == Some(cmd)
+            } else {
+                false
+            }
         })
         .map(|i| &tree.processes[i])
 }
