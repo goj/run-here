@@ -16,4 +16,3 @@ pub fn get_focused_pid_sway() -> Result<Option<Pid>> {
     let tree = connection.get_tree()?;
     Ok(get_focused_pid(tree))
 }
-

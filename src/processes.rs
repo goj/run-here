@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::env;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::Path};
 
 use crate::pid::Pid;
 use procfs::process::{all_processes, Process};
@@ -49,15 +49,20 @@ pub fn build_process_tree(root: Pid) -> Result<ProcessTree, Error> {
 }
 
 pub fn first_interesting(tree: &ProcessTree) -> Option<&Process> {
-    let editor = env::var("EDITOR").ok();
-    let shell = env::var("SHELL").ok();
+    let interesting_cmds_raw: Vec<String> = vec!["EDITOR", "SHELL"]
+        .iter()
+        .filter_map(|var| env::var(var).ok())
+        .collect();
+    let interesting_cmds: HashSet<_> = interesting_cmds_raw
+        .iter()
+        .filter_map(|s| Path::new(s).file_name())
+        .collect();
     tree.processes
         .iter()
         .position(|proc| {
             let cmdline = proc.cmdline().unwrap_or(vec![]);
-            if let Some(raw_cmd) = cmdline.get(0) {
-                let cmd = raw_cmd.rsplit_once("/").map(|(_, s)| s).unwrap_or(raw_cmd);
-                editor.as_deref() == Some(cmd) || shell.as_deref() == Some(cmd)
+            if let Some(cmd) = cmdline.get(0).and_then(|s| Path::new(s).file_name()) {
+                interesting_cmds.contains(cmd)
             } else {
                 false
             }
@@ -72,10 +77,6 @@ pub fn first_leaf(tree: &ProcessTree) -> Option<&Process> {
         .map(|i| &tree.processes[i])
 }
 
-pub fn interesting_descendant_dir(root_pid: Pid) -> Result<PathBuf, Error> {
-    let tree = build_process_tree(root_pid)?;
-    let proc = first_interesting(&tree)
-        .or_else(|| first_leaf(&tree))
-        .ok_or(Error::NoSuitablePwdFound)?;
-    Ok(proc.cwd()?)
+pub fn find_process(tree: &ProcessTree) -> Option<&Process> {
+    first_interesting(tree).or_else(|| first_leaf(tree))
 }

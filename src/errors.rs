@@ -11,8 +11,6 @@ pub enum Error {
     CouldNotReadProcFs(#[from] ProcError),
     #[error("IO error: {0}")]
     IoFailed(#[from] IoError),
-    #[error("Couldn't find suitable PWD")]
-    NoSuitablePwdFound,
     #[error("Missing command to execute")]
     MissingCommand,
 }
