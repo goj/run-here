@@ -1,11 +1,10 @@
 use anyhow::Result;
 use hyprland::{data::Client as HyprlandClient, shared::HyprDataActiveOptional};
 
-use crate::{errors::Error, pid::Pid};
+use crate::pid::Pid;
 
-pub fn get_focused_pid_hyprland() -> Result<Pid> {
+pub fn get_focused_pid_hyprland() -> Result<Option<Pid>> {
     let pid = HyprlandClient::get_active()?
-        .ok_or(Error::NoActiveHyprlandClient)?
-        .pid;
-    Ok(pid.into())
+        .map(|active| active.pid.into());
+    Ok(pid)
 }

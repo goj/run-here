@@ -1,5 +1,4 @@
 use anyhow::Result;
-use crate::errors::Error;
 
 use super::pid::Pid;
 use swayipc::{Connection, Node};
@@ -12,9 +11,9 @@ fn get_focused_pid(node: Node) -> Option<Pid> {
     children.flat_map(get_focused_pid).next()
 }
 
-pub fn get_focused_pid_sway() -> Result<Pid> {
+pub fn get_focused_pid_sway() -> Result<Option<Pid>> {
     let mut connection = Connection::new()?;
     let tree = connection.get_tree()?;
-    get_focused_pid(tree).ok_or_else(|| Error::FindingWindowPidFailed.into())
+    Ok(get_focused_pid(tree))
 }
 
