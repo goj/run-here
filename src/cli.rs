@@ -9,6 +9,7 @@ use clap::{CommandFactory, FromArgMatches, Parser};
 pub struct Cli {
     #[arg(short, long, default_value_t = false, help = "Verbose output")]
     pub verbose: bool,
+    #[cfg(feature = "direnv")]
     #[arg(short, long, default_value_t = false, help = "Respect direnv")]
     pub direnv: bool,
     #[arg(trailing_var_arg = true)]

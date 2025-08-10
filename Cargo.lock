@@ -686,6 +686,8 @@ dependencies = [
  "hyprland",
  "multimap",
  "procfs",
+ "serde",
+ "serde_json",
  "swayipc",
  "thiserror",
  "users",

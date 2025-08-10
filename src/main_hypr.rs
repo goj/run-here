@@ -3,6 +3,8 @@ use anyhow::Result;
 use crate::{cli::parse_args, execute::run_command, hypr::get_focused_pid_hyprland};
 
 mod cli;
+#[cfg(feature = "direnv")]
+mod direnv;
 mod errors;
 mod execute;
 mod hypr;

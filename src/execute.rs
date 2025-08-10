@@ -1,6 +1,8 @@
 use std::env;
 
 use crate::{cli::Cli, errors::Error, pid::Pid, processes};
+#[cfg(feature = "direnv")]
+use crate::direnv::apply_direnv;
 use anyhow::{bail, Result};
 use errno::Errno;
 
@@ -19,6 +21,10 @@ fn change_dir(pid: Pid) -> Result<()> {
 
 fn exec_it(args: &Cli) -> Result<()> {
     const ENOENT: Errno = Errno(2);
+    #[cfg(feature = "direnv")]
+    if args.direnv {
+        apply_direnv()?;
+    }
     let cmd = args.command.get(0).ok_or(Error::MissingCommand)?;
     match exec::Command::new(cmd).args(&args.command[1..]).exec() {
         exec::Error::BadArgument(_) => bail!("Executing failed: bad argument!"),

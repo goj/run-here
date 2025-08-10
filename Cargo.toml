@@ -3,18 +3,25 @@ name = "run-here"
 version = "0.4.0"
 edition = "2021"
 
+[features]
+sway = ["dep:swayipc"]
+hyprland = ["dep:hyprland"]
+direnv = ["dep:serde", "dep:serde_json"]
+default = ["sway", "hyprland", "direnv"]
+
 [[bin]]
 name = "sway-run-here"
 path = "src/main_sway.rs"
+required-features = ["sway"]
 
 [[bin]]
 name = "hypr-run-here"
 path = "src/main_hypr.rs"
+required-features = ["hyprland"]
 
 [dependencies]
 multimap = "0.9.1"
 procfs = "0.16.0"
-swayipc = "3.0.1"
 exec = "0.3.1"
 thiserror = "1.0"
 anyhow = "1.0"
@@ -22,5 +29,8 @@ errno = "0.2.8"
 clap = { version = "4.4.8", features = ["derive", "string"] }
 users = "0.11.0"
 xdg = "2.5"
-hyprland = {version = "0.4.0-beta.2"}
-derive_more = { version = "2.0.1", features = ["from"]}
+swayipc = { version = "3.0.1", optional = true }
+hyprland = { version = "0.4.0-beta.2", optional = true }
+derive_more = { version = "2.0.1", features = ["from"] }
+serde = { version = "1.0.219", optional = true }
+serde_json = { version = "1.0.142", optional = true }
