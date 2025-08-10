@@ -1,6 +1,6 @@
 use std::env;
 
-use crate::{pid::Pid, processes, cli::Cli};
+use crate::{cli::Cli, errors::Error, pid::Pid, processes};
 use anyhow::{bail, Result};
 use errno::Errno;
 
@@ -19,9 +19,10 @@ fn change_dir(pid: Pid) -> Result<()> {
 
 fn exec_it(args: &Cli) -> Result<()> {
     const ENOENT: Errno = Errno(2);
-    match exec::Command::new(&args.cmd).args(&args.args).exec() {
+    let cmd = args.command.get(0).ok_or(Error::MissingCommand)?;
+    match exec::Command::new(cmd).args(&args.command[1..]).exec() {
         exec::Error::BadArgument(_) => bail!("Executing failed: bad argument!"),
-        exec::Error::Errno(ENOENT) => bail!("Executing failed: command `{}` not found!", &args.cmd),
+        exec::Error::Errno(ENOENT) => bail!("Executing failed: command `{}` not found!", &cmd),
         exec::Error::Errno(errno) => bail!("Error {} when executing.", errno.0),
     }
 }

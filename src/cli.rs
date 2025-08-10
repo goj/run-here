@@ -7,11 +7,12 @@ use clap::{CommandFactory, FromArgMatches, Parser};
 #[command(about = "Runs a given program in current window's working directory")]
 #[command(version)]
 pub struct Cli {
-    #[arg(short, long, default_value_t = false)]
-    pub debug: bool,
-    pub cmd: String,
-    #[arg(last = true)]
-    pub args: Vec<String>,
+    #[arg(short, long, default_value_t = false, help = "Verbose output")]
+    pub verbose: bool,
+    #[arg(short, long, default_value_t = false, help = "Respect direnv")]
+    pub direnv: bool,
+    #[arg(trailing_var_arg = true)]
+    pub command: Vec<String>,
 }
 
 pub fn parse_args() -> Result<Cli> {

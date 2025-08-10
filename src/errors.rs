@@ -13,4 +13,6 @@ pub enum Error {
     IoFailed(#[from] IoError),
     #[error("Couldn't find suitable PWD")]
     NoSuitablePwdFound,
+    #[error("Missing command to execute")]
+    MissingCommand,
 }
