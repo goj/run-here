@@ -14,24 +14,48 @@
         version = cargoToml.package.version;
         pkgs = import nixpkgs { inherit system; };
         craneLib = crane.mkLib pkgs;
-        drv = craneLib.buildPackage {
-          pname = "run-here";
+        src = craneLib.cleanCargoSource (craneLib.path ./.);
+        featuresFlag = features: "--features ${nixpkgs.lib.concatStringsSep "," features}";
+        buildDeps = { features }: craneLib.buildDepsOnly {
+          inherit src;
+          cargoExtraArgs = featuresFlag features;
+        };
+        buildProgram = { pname, features }: craneLib.buildPackage {
+          inherit pname;
           inherit version;
-          src = craneLib.cleanCargoSource (craneLib.path ./.);
+          inherit features;
+          inherit src;
+          cargoExtraArgs = featuresFlag features;
+          cargoArtifacts = buildDeps { inherit features; };
           nativeBuildInputs = [ pkgs.makeWrapper ];
           buildInputs = [ pkgs.direnv ];
           postInstall = ''
-            wrapProgram $out/bin/sway-run-here \
-              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.direnv ]}
-            wrapProgram $out/bin/hypr-run-here \
+            wrapProgram $out/bin/$pname \
               --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.direnv ]}
           '';
         };
+        swayRunHere = buildProgram {
+          pname = "sway-run-here";
+          features = [ "default" "direnv" "sway" ];
+        };
+        hyprRunHere = buildProgram {
+          pname = "hypr-run-here";
+          features = [ "default" "direnv" "hyprland" ];
+        };
       in
-      {
-        checks.app-builds = drv;
-        packages.default = drv;
-        apps.default = flake-utils.lib.mkApp { inherit drv; };
+      rec {
+        checks.sway-run-here-builds = swayRunHere;
+        checks.hypr-run-here-builds = hyprRunHere;
+        packages.sway-run-here = swayRunHere;
+        packages.hypr-run-here = hyprRunHere;
+        packages.default = packages.hypr-run-here;
+        apps.sway-run-here = flake-utils.lib.mkApp {
+          drv = swayRunHere;
+        };
+        apps.hypr-run-here = flake-utils.lib.mkApp {
+          drv = hyprRunHere;
+        };
+        apps.default = apps.hypr-run-here;
         devShells.default = pkgs.mkShell {
           inputsFrom = builtins.attrValues self.checks;
           nativeBuildInputs = with pkgs; [

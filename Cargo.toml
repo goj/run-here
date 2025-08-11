@@ -7,7 +7,7 @@ edition = "2021"
 sway = ["dep:swayipc"]
 hyprland = ["dep:hyprland"]
 direnv = ["dep:serde", "dep:serde_json"]
-default = ["sway", "hyprland", "direnv"]
+default = ["direnv"]
 
 [[bin]]
 name = "sway-run-here"
