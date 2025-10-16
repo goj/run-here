@@ -13,4 +13,5 @@ jobs:
       with:
         name: goj
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-    - run: nix build
+    - run: nix build .#hypr-run-here
+    - run: nix build .#sway-run-here
